@@ -6,6 +6,7 @@
 *.lo
 *.o
 *.obj
+*.pdb
 
 # Precompiled Headers
 *.gch
@@ -30,3 +31,14 @@
 *.exe
 *.out
 *.app
+
+# Log Files
+*.tlog
+*.log
+*.txt
+*.py
+
+# Solution Files
+*.suo
+*.user
+.vs/
