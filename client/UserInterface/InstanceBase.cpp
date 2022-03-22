@@ -839,7 +839,9 @@ bool CInstanceBase::Create(const SCreateData& c_rkCreateData)
 
 	SetMoveSpeed(c_rkCreateData.m_dwMovSpd);
 	SetAttackSpeed(c_rkCreateData.m_dwAtkSpd);
-
+#ifdef ENABLE_TITLE_SYSTEM
+	SetTitleID(c_rkCreateData.m_dwTitleID);
+#endif
 	if (!IsWearingDress())
 	{
 		m_GraphicThingInstance.SetAlphaValue(0.0f);
@@ -3382,4 +3384,26 @@ void CInstanceBase::GetBoundBox(D3DXVECTOR3 * vtMin, D3DXVECTOR3 * vtMax)
 {
 	m_GraphicThingInstance.GetBoundBox(vtMin, vtMax);
 }
-
+#ifdef ENABLE_TITLE_SYSTEM
+void CInstanceBase::SetTitleID(DWORD dwTitleID)
+{
+	m_dwTitleID = dwTitleID;
+	TraceError("SetTitleID %u", m_dwTitleID);
+	RefreshTextTailTitle();
+}
+// not implemented
+D3DXCOLOR * CInstanceBase::GetPlayerTitleColor()
+{
+	TTitleTable* pTable = GetTitleByID(m_dwTitleID);
+	if (!pTable)
+		return nullptr;
+	return &pTable->color;
+}
+std::string CInstanceBase::GetTitleNameString()
+{
+	TTitleTable* pTable = GetTitleByID(m_dwTitleID);
+	if (!pTable)
+		return "";
+	return pTable->szName;
+}
+#endif

@@ -3066,6 +3066,16 @@ void CInputMain::Acce(LPCHARACTER pkChar, const char* c_pData)
 }
 #endif
 
+#ifdef ENABLE_TITLE_SYSTEM
+void CInputMain::PlayerSetTitle(LPCHARACTER ch, const char* c_pData)
+{
+	TPacketCGPlayerSetTitle* p = (TPacketCGPlayerSetTitle*)c_pData;
+	if (!p->dwTitleID)
+		return;
+	// all the checks are inside SetTitle. we don't need to check anything.
+	ch->SetTitle(p->dwTitleID);
+}
+#endif
 
 int CInputMain::Analyze(LPDESC d, BYTE bHeader, const char * c_pData)
 {
@@ -3357,6 +3367,11 @@ int CInputMain::Analyze(LPDESC d, BYTE bHeader, const char * c_pData)
 			}
 
 			break;
+#ifdef ENABLE_TITLE_SYSTEM
+			case HEADER_CG_PLAYER_SET_TITLE:
+				PlayerSetTitle(ch, c_pData);
+				break;
+#endif
 	}
 	return (iExtraLen);
 }

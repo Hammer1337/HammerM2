@@ -1756,7 +1756,9 @@ void CClientManager::QUERY_FLUSH_CACHE(CPeer * pkPeer, const char * c_pData)
 
 	pkCache->Flush();
 	FlushItemCacheSet(dwPID);
-
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+	FlushPlayerTitleCache(dwPID);
+#endif
 	m_map_playerCache.erase(dwPID);
 	delete pkCache;
 }
@@ -2877,6 +2879,16 @@ void CClientManager::ProcessPackets(CPeer * peer)
 			}
 			break;
 #endif
+#ifdef ENABLE_TITLE_SYSTEM
+			case HEADER_GD_ADD_TITLE:
+				sys_log(1, "HEADER_GD_ADD_TITLE");
+				QUERY_ADD_TITLE(peer, (TPlayerTitle*)data);
+				break;
+			case HEADER_GD_REMOVE_TITLE:
+				sys_log(1, "HEADER_GD_REMOVE_TITLE");
+				QUERY_REMOVE_TITLE(peer, (TPlayerTitle*)data);
+				break;
+#endif
 			default:
 				sys_err("Unknown header (header: %d handle: %d length: %d)", header, dwHandle, dwLength);
 				break;
@@ -2998,6 +3010,9 @@ int CClientManager::AnalyzeQueryResult(SQLMsg * msg)
 		case QID_ITEM:
 		case QID_QUEST:
 		case QID_AFFECT:
+#ifdef ENABLE_TITLE_SYSTEM
+		case QID_TITLE:
+#endif
 			RESULT_COMPOSITE_PLAYER(peer, msg, qi->iType);
 			break;
 
@@ -3193,7 +3208,9 @@ int CClientManager::Process()
 			UpdateItemCache();
 
 			UpdateLogoutPlayer();
-
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+			UpdatePlayerTitleCache();
+#endif
 			// MYSHOP_PRICE_LIST
 			UpdateItemPriceListCache();
 			// END_OF_MYSHOP_PRICE_LIST
@@ -4514,6 +4531,128 @@ void CClientManager::ChargeCash(const TRequestChargeCash* packet)
 
 	CDBManager::Instance().AsyncQuery(szQuery, SQL_ACCOUNT);
 }
+
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+CClientManager::TPlayerTitleCache * CClientManager::GetPlayerTitleCacheMap(DWORD dwPID)
+{
+	const auto& it = m_map_playerTitleCachePtr.find(dwPID);
+
+	if (it == m_map_playerTitleCachePtr.end())
+		return nullptr;
+	sys_log(0, "GetPlayerTitleCacheMap Get pid %u ", dwPID);
+	return &it->second;
+}
+
+void CClientManager::PutPlayerTitleCache(DWORD dwPID, TPlayerTitle *title)
+{
+	const auto& it = m_map_playerTitleCachePtr.find(dwPID);
+	// if the key exists
+	if (it != m_map_playerTitleCachePtr.end())
+	{
+		const auto& iter = it->second.find(title->dwTitleID);
+		if (iter != it->second.end())
+		{
+			// update cache
+			sys_log(0, "PutPlayerTitleCache update pid %u title %u", dwPID, title->dwTitleID);
+
+			iter->second->Put(title);
+			return;
+		}
+		// add new cache
+		CPlayerTitleCache* newCache = new CPlayerTitleCache;
+
+		newCache->Put(title);
+		sys_log(0, "PutPlayerTitleCache append pid %u title %u", dwPID, title->dwTitleID);
+
+		it->second.insert(std::make_pair(title->dwTitleID, newCache));
+		return;
+	}
+	// the key doesn't exist
+	CPlayerTitleCache* newCache = new CPlayerTitleCache;
+
+	newCache->Put(title);
+
+	TPlayerTitleCache cacheMap;
+	cacheMap.insert(std::make_pair(title->dwTitleID, newCache));
+	sys_log(0, "PutPlayerTitleCache add pid %u title %u", dwPID, title->dwTitleID);
+
+	// now we need to add this map to the map that has pid as a key.
+	m_map_playerTitleCachePtr.insert(std::make_pair(dwPID, cacheMap));
+}
+void CClientManager::UpdatePlayerTitleCache(DWORD dwPID, TPlayerTitle title)
+{
+	const auto& it = m_map_playerTitleCachePtr.find(dwPID);
+	// if the key doesn't exist
+	if (it == m_map_playerTitleCachePtr.end())
+		return;
+	const auto& iter = it->second.find(title.dwTitleID);
+	if (iter == it->second.end())
+		return;
+	sys_log(0, "UpdatePlayerTitleCache pid %u title %u", dwPID, title.dwTitleID);
+
+	iter->second->Put(&title);
+}
+
+void CClientManager::UpdatePlayerTitleCache()
+{
+	for(const auto & it : m_map_playerTitleCachePtr)
+	{
+
+		for(const auto & iter : it.second)
+		{
+			CPlayerTitleCache* c = iter.second;
+
+			if (!c)
+				continue;
+
+			if (c->CheckTimeout())
+			{
+				if (g_log)
+					sys_log(0, "UPDATE : UpdateTitleCache() ==> FlushTitleCache %d %d ", c->Get(false)->dwPlayerID, c->Get(false)->dwTitleID);
+
+				c->Flush();
+			}
+			else if (c->CheckFlushTimeout())
+				c->Flush();
+		}
+
+	}
+}
+
+void CClientManager::FlushPlayerTitleCache(DWORD dwPID)
+{
+	const auto& it = m_map_playerTitleCachePtr.find(dwPID);
+
+	if (it == m_map_playerTitleCachePtr.end())
+		return;
+	sys_log(0, "FlushPlayerTitleCache pid %u", dwPID);
+
+	for(const auto & iter : it->second)
+	{
+		CPlayerTitleCache* c = iter.second;
+		if (!c)
+			continue;
+		c->Flush();
+		it->second.erase(iter.first);
+		delete c;
+	}
+}
+CPlayerTitleCache * CClientManager::GetPlayerTitleCache(DWORD dwPID, DWORD dwTitleID)
+{
+	const auto& it = m_map_playerTitleCachePtr.find(dwPID);
+
+	if (it == m_map_playerTitleCachePtr.end())
+		return nullptr;
+
+	const auto& iter = it->second.find(dwTitleID);
+
+	if (iter == it->second.end())
+		return nullptr;
+	sys_log(0, "GetPlayerTitleCache pid %u title %u", dwPID, dwTitleID);
+
+	return iter->second;
+}
+#endif
 
 #ifdef __AUCTION__
 void CClientManager::EnrollInAuction (CPeer * peer, DWORD owner_id, AuctionEnrollProductInfo* data)

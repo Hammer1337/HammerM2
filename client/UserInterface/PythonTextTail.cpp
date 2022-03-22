@@ -17,8 +17,14 @@ const D3DXCOLOR c_TextTail_Info_Color = D3DXCOLOR(1.0f, 0.785f, 0.785f, 1.0f);
 const D3DXCOLOR c_TextTail_Guild_Name_Color = 0xFFEFD3FF;
 const float c_TextTail_Name_Position = -10.0f;
 const float c_fxMarkPosition = 1.5f;
-const float c_fyGuildNamePosition = 15.0f;
-const float c_fyMarkPosition = 15.0f + 11.0f;
+#ifdef ENABLE_TITLE_SYSTEM
+const float c_fyPlayerTitlePosition = 15.0f;
+const float c_fyGuildNamePosition = 15.0f + 15.0f; // guild name y-position
+const float c_fyMarkPosition = 15.0f + 11.0f + 15.0f; // guild mark y-position
+#else
+const float c_fyGuildNamePosition = 15.0f; // guild name y-position
+const float c_fyMarkPosition = 15.0f + 11.0f; // guild mark y-position
+#endif
 BOOL bPKTitleEnable = TRUE;
 
 // TEXTTAIL_LIVINGTIME_CONTROL
@@ -223,7 +229,15 @@ void CPythonTextTail::ArrangeTextTail()
 			pGuildNameInstance->SetPosition(pTextTail->x + iImageHalfSize, pTextTail->y - c_fyGuildNamePosition, pTextTail->z);
 			pGuildNameInstance->Update();
 		}
-
+#ifdef ENABLE_TITLE_SYSTEM
+		auto pPlayerTitleInstance = pTextTail->pPlayerTitleTextInstance;
+		if (pPlayerTitleInstance)
+		{
+			pPlayerTitleInstance->SetPosition(pTextTail->x, pTextTail->y - c_fyPlayerTitlePosition, pTextTail->z);
+			pPlayerTitleInstance->Update();
+			
+		}
+#endif
 		int iNameWidth, iNameHeight;
 		pTextTail->pTextInstance->GetTextSize(&iNameWidth, &iNameHeight);
 
@@ -352,6 +366,12 @@ void CPythonTextTail::Render()
 		{
 			pTextTail->pLevelTextInstance->Render();
 		}
+#ifdef ENABLE_TITLE_SYSTEM
+		if (pTextTail->pPlayerTitleTextInstance)
+		{
+			pTextTail->pPlayerTitleTextInstance->Render();
+		}
+#endif
 	}
 
 	for (itor = m_ItemTextTailList.begin(); itor != m_ItemTextTailList.end(); ++itor)
@@ -510,7 +530,9 @@ void CPythonTextTail::RegisterCharacterTextTail(DWORD dwGuildID, DWORD dwVirtual
 	pTextTail->pGuildNameTextInstance=NULL;
 	pTextTail->pTitleTextInstance=NULL;
 	pTextTail->pLevelTextInstance=NULL;
-
+#ifdef ENABLE_TITLE_SYSTEM
+	pTextTail->pPlayerTitleTextInstance = nullptr;
+#endif
 	if (0 != dwGuildID)
 	{
 		pTextTail->pMarkInstance = CGraphicMarkInstance::New();
@@ -542,6 +564,20 @@ void CPythonTextTail::RegisterCharacterTextTail(DWORD dwGuildID, DWORD dwVirtual
 		prGuildNameInstance->SetValue(strGuildName.c_str());
 		prGuildNameInstance->SetColor(c_TextTail_Guild_Name_Color.r, c_TextTail_Guild_Name_Color.g, c_TextTail_Guild_Name_Color.b);
 		prGuildNameInstance->Update();
+#ifdef ENABLE_TITLE_SYSTEM
+		CGraphicTextInstance*& pPlayerTitleInstance = pTextTail->pPlayerTitleTextInstance;
+		pPlayerTitleInstance = CGraphicTextInstance::New();
+		pPlayerTitleInstance->SetTextPointer(ms_pFont);
+		pPlayerTitleInstance->SetOutline(true);
+		pPlayerTitleInstance->SetHorizonalAlign(CGraphicTextInstance::HORIZONTAL_ALIGN_CENTER);
+		pPlayerTitleInstance->SetVerticalAlign(CGraphicTextInstance::VERTICAL_ALIGN_BOTTOM);
+		std::string stTitle = "[" + pCharacterInstance->GetTitleNameString() + "]";
+		pPlayerTitleInstance->SetValue(stTitle.c_str());
+		D3DXCOLOR* pPlayerTitleColor = pCharacterInstance->GetPlayerTitleColor();
+		pPlayerTitleInstance->SetColor(pPlayerTitleColor->r, pPlayerTitleColor->g, pPlayerTitleColor->b);
+		//pPlayerTitleInstance->SetColor(c_TextTail_Guild_Name_Color.r, c_TextTail_Guild_Name_Color.g, c_TextTail_Guild_Name_Color.b);
+		pPlayerTitleInstance->Update();
+#endif
 	}
 
 	m_CharacterTextTailMap.insert(TTextTailMap::value_type(dwVirtualID, pTextTail));
@@ -803,6 +839,9 @@ CPythonTextTail::TTextTail * CPythonTextTail::RegisterTextTail(DWORD dwVirtualID
 	pTextTail->pGuildNameTextInstance = NULL;
 	pTextTail->pTitleTextInstance = NULL;
 	pTextTail->pLevelTextInstance = NULL;
+#ifdef ENABLE_TITLE_SYSTEM
+	pTextTail->pPlayerTitleTextInstance = nullptr;
+#endif
 	return pTextTail;
 }
 
@@ -828,6 +867,13 @@ void CPythonTextTail::DeleteTextTail(TTextTail * pTextTail)
 		CGraphicTextInstance::Delete(pTextTail->pGuildNameTextInstance);
 		pTextTail->pGuildNameTextInstance = NULL;
 	}
+#ifdef ENABLE_TITLE_SYSTEM
+	if (pTextTail->pPlayerTitleTextInstance)
+	{
+		CGraphicTextInstance::Delete(pTextTail->pPlayerTitleTextInstance);
+		pTextTail->pPlayerTitleTextInstance = nullptr;
+	}
+#endif
 	if (pTextTail->pTitleTextInstance)
 	{
 		CGraphicTextInstance::Delete(pTextTail->pTitleTextInstance);
@@ -900,6 +946,60 @@ void CPythonTextTail::AttachTitle(DWORD dwVID, const char * c_szName, const D3DX
 	prTitle->Update();
 }
 
+
+#ifdef ENABLE_TITLE_SYSTEM
+void CPythonTextTail::AttachPlayerTitle(DWORD dwVID, const char* c_szName, const D3DXCOLOR& c_rColor)
+{
+	CInstanceBase * pInstance = CPythonCharacterManager::Instance().GetInstancePtr(dwVID);
+
+	if (!pInstance)
+		return;
+
+	TTextTailMap::iterator itor = m_CharacterTextTailMap.find(dwVID);
+	if (m_CharacterTextTailMap.end() == itor)
+		return;
+
+	TTextTail* pTextTail = itor->second;
+
+	CGraphicTextInstance*& prTitle = pTextTail->pPlayerTitleTextInstance;
+	if (!prTitle)
+	{
+		prTitle = CGraphicTextInstance::New();
+		prTitle->SetTextPointer(ms_pFont);
+		prTitle->SetOutline(true);
+
+		if (LocaleService_IsEUROPE())
+			prTitle->SetHorizonalAlign(CGraphicTextInstance::HORIZONTAL_ALIGN_RIGHT);
+		else
+			prTitle->SetHorizonalAlign(CGraphicTextInstance::HORIZONTAL_ALIGN_CENTER);
+		prTitle->SetVerticalAlign(CGraphicTextInstance::VERTICAL_ALIGN_BOTTOM);
+	}
+
+	prTitle->SetValue(c_szName);
+	//TODO: change it when done
+	TraceError("color: %.1f, %.1f, %.1f", c_rColor.r, c_rColor.g, c_rColor.b);
+	prTitle->SetColor(c_rColor.r, c_rColor.g, c_rColor.b);
+	prTitle->Update();
+}
+void CPythonTextTail::DetachPlayerTitle(DWORD dwVID)
+{
+	if (!bPKTitleEnable)
+		return;
+
+	TTextTailMap::iterator itor = m_CharacterTextTailMap.find(dwVID);
+	if (m_CharacterTextTailMap.end() == itor)
+		return;
+
+	TTextTail* pTextTail = itor->second;
+
+	if (pTextTail->pPlayerTitleTextInstance)
+	{
+		CGraphicTextInstance::Delete(pTextTail->pPlayerTitleTextInstance);
+		pTextTail->pPlayerTitleTextInstance = NULL;
+	}
+}
+
+#endif
 void CPythonTextTail::DetachTitle(DWORD dwVID)
 {
 	if (!bPKTitleEnable)

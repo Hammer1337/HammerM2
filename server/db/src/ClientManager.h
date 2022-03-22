@@ -17,7 +17,9 @@
 class CPlayerTableCache;
 class CItemCache;
 class CItemPriceListTableCache;
-
+#ifdef ENABLE_TITLE_SYSTEM
+class CPlayerTitleCache;
+#endif
 class CPacketInfo
 {
     public:
@@ -39,6 +41,10 @@ class CClientManager : public CNetBase, public singleton<CClientManager>
 	typedef boost::unordered_map<DWORD, TItemCacheSet *> TItemCacheSetPtrMap;
 	typedef boost::unordered_map<DWORD, CItemPriceListTableCache*> TItemPriceListCacheMap;
 	typedef boost::unordered_map<short, BYTE> TChannelStatusMap;
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+	typedef boost::unordered_map<DWORD, CPlayerTitleCache*> TPlayerTitleCache; // title_id, CPlayerTitleCache
+	typedef boost::unordered_map<DWORD, TPlayerTitleCache> TPlayerTitleCacheMap; // pid, map of titles 
+#endif
 
 	// MYSHOP_PRICE_LIST
 
@@ -236,6 +242,9 @@ class CClientManager : public CNetBase, public singleton<CClientManager>
 	void		RESULT_PLAYER_LOAD(CPeer * peer, MYSQL_RES * pRes, ClientHandleInfo * pkInfo);
 	void		RESULT_ITEM_LOAD(CPeer * peer, MYSQL_RES * pRes, DWORD dwHandle, DWORD dwPID);
 	void		RESULT_QUEST_LOAD(CPeer * pkPeer, MYSQL_RES * pRes, DWORD dwHandle, DWORD dwPID);
+#ifdef ENABLE_TITLE_SYSTEM
+	void		RESULT_TITLE_LOAD(CPeer* peer, MYSQL_RES* pRes, DWORD dwHandle, DWORD dwRealPID);
+#endif
 	// @fixme402 (RESULT_AFFECT_LOAD +dwRealPID)
 	void		RESULT_AFFECT_LOAD(CPeer * pkPeer, MYSQL_RES * pRes, DWORD dwHandle, DWORD dwRealPID);
 
@@ -317,6 +326,14 @@ class CClientManager : public CNetBase, public singleton<CClientManager>
 	void		RESULT_LOGIN_BY_KEY(CPeer * peer, SQLMsg * msg);
 
 	void		ChargeCash(const TRequestChargeCash * p);
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+	TPlayerTitleCache* GetPlayerTitleCacheMap(DWORD dwPID);
+	void		PutPlayerTitleCache(DWORD dwPID, TPlayerTitle *title);
+	void		UpdatePlayerTitleCache(DWORD dwPID, TPlayerTitle title);
+	void		UpdatePlayerTitleCache();
+	void		FlushPlayerTitleCache(DWORD dwPID);
+	CPlayerTitleCache* GetPlayerTitleCache(DWORD dwPID, DWORD dwTitleID);
+#endif
 
 	void		LoadEventFlag();
 	void		SetEventFlag(TPacketSetEventFlag* p);
@@ -424,7 +441,9 @@ class CClientManager : public CNetBase, public singleton<CClientManager>
 	// END_OF_MYSHOP_PRICE_LIST
 
 	TChannelStatusMap m_mChannelStatus;
-
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+	TPlayerTitleCacheMap m_map_playerTitleCachePtr;
+#endif
 	struct TPartyInfo
 	{
 	    BYTE bRole;
@@ -496,6 +515,10 @@ class CClientManager : public CNetBase, public singleton<CClientManager>
 	void UpdateItemCacheSet(DWORD pid);
 
 	void FlushPlayerCacheSet(DWORD pid);
+#ifdef ENABLE_TITLE_SYSTEM
+	void QUERY_ADD_TITLE(CPeer* peer, TPlayerTitle* p);
+	void QUERY_REMOVE_TITLE(CPeer* peer, TPlayerTitle* p);
+#endif
 
 	//MONARCH
 	void Election(CPeer * peer, DWORD dwHandle, const char * p);

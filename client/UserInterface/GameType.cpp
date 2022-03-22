@@ -110,4 +110,35 @@ BYTE SlotTypeToInvenType(BYTE bSlotType)
 	else
 		return c_aSlotTypeToInvenType[bSlotType];
 }
+#ifdef ENABLE_TITLE_SYSTEM
+enum ETitleMisc
+{
+	PLAYER_TITLE_MAX_NUM = 4,
+};
+
+// this must match the server's array in constants.cpp.
+TTitleTable aTitles[PLAYER_TITLE_MAX_NUM] = {
+	{
+		1, "«·ÕÌ«…", {CItemData::APPLY_MAX_HP, 1000}
+		, D3DXCOLOR(0.8f, 0.3f, 0.1f, 1.0f)
+	},
+	{2, "«·√”·Ê»", {CItemData::APPLY_MAX_SP, 1000}
+		, D3DXCOLOR(0.1f, 0.3f, 0.8f, 1.0f)
+	},
+	{3, "«·ÂÃÊ„", {CItemData::APPLY_MAX_HP, 1000}
+		, D3DXCOLOR(0.9f, 0.5f, 0.4f, 1.0f)
+		},
+	{4, "«·œ›«⁄", {CItemData::APPLY_MAX_HP, 1000}
+		, D3DXCOLOR(0.3f, 0.8f, 0.2f, 1.0f)
+	},
+};
+
+TTitleTable* GetTitleByID(DWORD dwTitleID)
+{
+	for (size_t i = 0; i < _countof(aTitles); ++i)
+		if (aTitles[i].dwTitleID == dwTitleID)
+			return &aTitles[i];
+	return nullptr;
+}
+#endif
 

@@ -89,7 +89,9 @@ PyObject * chrCreateInstance(PyObject* poSelf, PyObject* poArgs)
 		kCreateData.m_dwAcce = 0;
 #endif
 		kCreateData.m_isMain=false;
-
+#ifdef ENABLE_TITLE_SYSTEM
+		kCreateData.m_dwTitleID = 0;
+#endif
 		PyObject* poHorse=PyDict_GetItemString(poDict, "horse");
 		if (poHorse)
 			kCreateData.m_dwMountVnum=PyLong_AsLong(poHorse);

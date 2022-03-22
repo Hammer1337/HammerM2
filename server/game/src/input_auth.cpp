@@ -179,19 +179,6 @@ void CInputAuth::Login(LPDESC d, const char * c_pData)
 	// END_OF_CHANNEL_SERVICE_LOGIN
 	else
 	{
-#ifdef __WIN32__
-		DBManager::instance().ReturnQuery(QID_AUTH_LOGIN, dwKey, p,
-				"SELECT PASSWORD('%s'),password,securitycode,social_id,id,status,availDt - NOW() > 0,"
-				"UNIX_TIMESTAMP(silver_expire),"
-				"UNIX_TIMESTAMP(gold_expire),"
-				"UNIX_TIMESTAMP(safebox_expire),"
-				"UNIX_TIMESTAMP(autoloot_expire),"
-				"UNIX_TIMESTAMP(fish_mind_expire),"
-				"UNIX_TIMESTAMP(marriage_fast_expire),"
-				"UNIX_TIMESTAMP(money_drop_rate_expire),"
-				"UNIX_TIMESTAMP(create_time)"
-				" FROM account WHERE login='%s'", szPasswd, szLogin);
-#else
 		// @fixme138 1. PASSWORD('%s') -> %s 2. szPasswd wrapped inside mysql_hash_password(%s).c_str()
 		DBManager::instance().ReturnQuery(QID_AUTH_LOGIN, dwKey, p,
 				"SELECT '%s',password,securitycode,social_id,id,status,availDt - NOW() > 0,"
@@ -205,7 +192,6 @@ void CInputAuth::Login(LPDESC d, const char * c_pData)
 				"UNIX_TIMESTAMP(create_time)"
 				" FROM account WHERE login='%s'",
 				mysql_hash_password(szPasswd).c_str(), szLogin);
-#endif
 	}
 }
 
@@ -337,19 +323,7 @@ void CInputAuth::LoginOpenID(LPDESC d, const char * c_pData)
 	// END_OF_CHANNEL_SERVICE_LOGIN
 	else
 	{
-#ifdef __WIN32__
-		DBManager::instance().ReturnQuery(QID_AUTH_LOGIN, dwKey, p,
-				"SELECT PASSWORD('%s'),password,securitycode,social_id,id,status,availDt - NOW() > 0,"
-				"UNIX_TIMESTAMP(silver_expire),"
-				"UNIX_TIMESTAMP(gold_expire),"
-				"UNIX_TIMESTAMP(safebox_expire),"
-				"UNIX_TIMESTAMP(autoloot_expire),"
-				"UNIX_TIMESTAMP(fish_mind_expire),"
-				"UNIX_TIMESTAMP(marriage_fast_expire),"
-				"UNIX_TIMESTAMP(money_drop_rate_expire),"
-				"UNIX_TIMESTAMP(create_time)"
-				" FROM account WHERE login='%s'", szLogin);
-#else
+
 		// @fixme138 1. PASSWORD('%s') -> %s 2. szPasswd wrapped inside mysql_hash_password(%s).c_str()
 		DBManager::instance().ReturnQuery(QID_AUTH_LOGIN, dwKey, p,
 				"SELECT '%s',password,securitycode,social_id,id,status,availDt - NOW() > 0,"
@@ -363,7 +337,6 @@ void CInputAuth::LoginOpenID(LPDESC d, const char * c_pData)
 				"UNIX_TIMESTAMP(create_time)"
 				" FROM account WHERE login='%s'",
 				mysql_hash_password(szPasswd).c_str(), szLogin);
-#endif
 	}
 }
 

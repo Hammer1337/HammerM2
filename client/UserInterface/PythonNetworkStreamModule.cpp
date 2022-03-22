@@ -1726,7 +1726,18 @@ PyObject* netRegisterErrorLog(PyObject* poSelf, PyObject* poArgs)
 
 	return Py_BuildNone();
 }
+#ifdef ENABLE_TITLE_SYSTEM
+PyObject* netSendPlayerSetTitlePacket(PyObject* poSelf, PyObject* poArgs)
+{
+	int iTitleIndex;
+	if (!PyTuple_GetInteger(poArgs, 0, &iTitleIndex))
+		return Py_BuildException();
 
+	CPythonNetworkStream& rkNetStream = CPythonNetworkStream::Instance();
+	rkNetStream.SendPlayerSetTitlePacket(static_cast<DWORD>(iTitleIndex));
+	return Py_BuildNone();
+}
+#endif
 void initnet()
 {
 	static PyMethodDef s_methods[] =
@@ -1894,7 +1905,9 @@ void initnet()
 
 		// Log
 		{ "RegisterErrorLog",						netRegisterErrorLog,						METH_VARARGS },
-
+#ifdef ENABLE_TITLE_SYSTEM
+		{ "SendPlayerSetTitlePacket",						netSendPlayerSetTitlePacket,						METH_VARARGS },
+#endif
 		{ NULL,										NULL,										NULL },
 	};
 

@@ -159,6 +159,9 @@ class CInputMain : public CInputProcessor
 #ifdef ENABLE_ACCE_SYSTEM
 		void		Acce(LPCHARACTER pkChar, const char* c_pData);
 #endif
+#ifdef ENABLE_TITLE_SYSTEM
+		void		PlayerSetTitle(LPCHARACTER ch, const char* c_pData);
+#endif
 		void		Roulette(LPCHARACTER ch, const char* c_pData);
 };
 
@@ -293,8 +296,10 @@ protected:
 	void		ItemAwardInformer(TPacketItemAwardInfromer* data);
 
 	void		RespondChannelStatus(LPDESC desc, const char* pcData);
-
-	protected:
+#ifdef ENABLE_TITLE_SYSTEM
+	void		TitleLoad(LPDESC d, const char* c_pData);
+#endif
+protected:
 		DWORD		m_dwHandle;
 };
 

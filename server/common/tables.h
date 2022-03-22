@@ -84,7 +84,10 @@ enum
 	HEADER_GD_PARTY_SET_MEMBER_LEVEL	= 56,
 
 	HEADER_GD_GUILD_WAR_BET		= 57,
-
+#ifdef ENABLE_TITLE_SYSTEM
+	HEADER_GD_ADD_TITLE			= 58,
+	HEADER_GD_REMOVE_TITLE			= 59, // not needed
+#endif
 	HEADER_GD_CREATE_OBJECT		= 60,
 	HEADER_GD_DELETE_OBJECT		= 61,
 	HEADER_GD_UPDATE_LAND		= 62,
@@ -289,7 +292,9 @@ enum
 	HEADER_DG_RESULT_CHARGE_CASH	= 179,
 	HEADER_DG_ITEMAWARD_INFORMER	= 180,	//gift notify
 	HEADER_DG_RESPOND_CHANNELSTATUS		= 181,
-
+#ifdef ENABLE_TITLE_SYSTEM
+	HEADER_DG_TITLE_LOAD			= 182,
+#endif
 	HEADER_DG_MAP_LOCATIONS		= 0xfe,
 	HEADER_DG_P2P			= 0xff,
 
@@ -483,6 +488,9 @@ typedef struct SPlayerTable
 	DWORD	logoff_interval;
 
 	int		aiPremiumTimes[PREMIUM_MAX_NUM];
+#ifdef ENABLE_TITLE_SYSTEM
+	DWORD	dwTitleID;
+#endif
 } TPlayerTable;
 
 typedef struct SMobSkillLevel
@@ -1476,6 +1484,20 @@ typedef struct SChannelStatus
 	short nPort;
 	BYTE bStatus;
 } TChannelStatus;
+#ifdef ENABLE_TITLE_SYSTEM
+// title system struct
+typedef struct SPlayerTitle
+{
+	DWORD dwPlayerID;
+	DWORD dwTitleID;
+}TPlayerTitle;
+typedef struct STitleTable
+{
+	DWORD dwID;
+	const char* szName; // should be char
+	TPlayerItemAttribute attr;
+}TTitleTable;
+#endif
 
 #pragma pack()
 #endif

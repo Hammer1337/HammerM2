@@ -110,6 +110,10 @@ enum EAffectTypes
 	AFFECT_HOLLY_STONE_POWER = 303,
 
 	AFFECT_QUEST_START_IDX = 1000
+//#ifdef ENABLE_TITLE_SYSTEM
+	,AFFECT_TITLE_BONUS = 1001
+//#endif
+
 };
 
 enum EAffectBits

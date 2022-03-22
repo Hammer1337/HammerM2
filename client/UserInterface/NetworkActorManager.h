@@ -43,7 +43,9 @@ struct SNetworkActorData
 
 	DWORD	m_dwGuildID;
 	DWORD	m_dwLevel;
-
+#ifdef ENABLE_TITLE_SYSTEM
+	DWORD	m_dwTitleID;
+#endif
 	SNetworkActorData();
 
 	void SetDstPosition(DWORD dwServerTime, LONG lDstX, LONG lDstY, DWORD dwDuration);
@@ -97,6 +99,9 @@ struct SNetworkUpdateActorData
 	BYTE m_byPKMode;
 	DWORD m_dwMountVnum;
 	DWORD m_dwStateFlags;
+#ifdef ENABLE_TITLE_SYSTEM
+	DWORD m_dwTitleID;
+#endif
 	CAffectFlagContainer m_kAffectFlags;
 
 	SNetworkUpdateActorData()
@@ -115,6 +120,9 @@ struct SNetworkUpdateActorData
 		m_byPKMode=0;
 		m_dwMountVnum=0;
 		m_dwStateFlags=0;
+#ifdef ENABLE_TITLE_SYSTEM
+		m_dwTitleID = 0;
+#endif
 		m_kAffectFlags.Clear();
 	}
 };

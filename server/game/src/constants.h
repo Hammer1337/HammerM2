@@ -184,5 +184,10 @@ long FN_get_apply_type(const char *apply_type_string);
 // END_OF_ACCESSORY_REFINE
 
 long FN_get_apply_type(const char *apply_type_string);
+
+#ifdef ENABLE_TITLE_SYSTEM
+extern TTitleTable* GetTitleByID(DWORD dwTitleID);
+#endif
+
 #endif
 

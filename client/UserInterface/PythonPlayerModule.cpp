@@ -2170,7 +2170,21 @@ PyObject* playerSendDragonSoulRefine(PyObject* poSelf, PyObject* poArgs)
 
 	return Py_BuildNone();
 }
+#ifdef ENABLE_TITLE_SYSTEM
+PyObject* playerGetPlayerTitle(PyObject* poSelf, PyObject* poArgs)
+{
+	int titleID = 0;
+	if (!PyTuple_GetInteger(poArgs, 0, &titleID))
+		return Py_BadArgument();
 
+	TTitleTable* pTitle = GetTitleByID(titleID);
+	if (!pTitle)
+		return Py_BadArgument();
+
+
+	return Py_BuildValue("siiffff", pTitle->szName, pTitle->attr.bType, pTitle->attr.sValue, pTitle->color.r, pTitle->color.g, pTitle->color.b, pTitle->color.a);
+}
+#endif
 void initPlayer()
 {
 	static PyMethodDef s_methods[] =
@@ -2347,7 +2361,9 @@ void initPlayer()
 		{ "GetItemSealDate",			playerGetItemSealDate,				METH_VARARGS },
 		{ "GetItemUnSealLeftTime",		GetItemUnSealLeftTime,				METH_VARARGS },
 #endif
-
+#ifdef ENABLE_TITLE_SYSTEM
+		{ "GetPlayerTitle",		playerGetPlayerTitle,					METH_VARARGS},
+#endif
 		{ NULL,							NULL,								NULL },
 	};
 

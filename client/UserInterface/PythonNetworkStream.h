@@ -260,6 +260,11 @@ class CPythonNetworkStream : public CNetworkStream, public CSingleton<CPythonNet
 		bool __SendCRCReportPacket();
 
 		bool SendDragonSoulRefinePacket(BYTE bRefineType, TItemPos* pos);
+#ifdef ENABLE_TITLE_SYSTEM
+		bool SendPlayerSetTitlePacket(DWORD dwTitleID);
+
+		bool RecvCharacterTitles();
+#endif
 
 		// Handshake
 		bool RecvHandshakePacket();

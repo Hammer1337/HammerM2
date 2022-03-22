@@ -235,6 +235,9 @@ CPacketInfoCG::CPacketInfoCG()
 #ifdef ENABLE_ACCE_SYSTEM
 	Set(HEADER_CG_ACCE, sizeof(TPacketAcce), "Acce", true);
 #endif
+#ifdef ENABLE_TITLE_SYSTEM
+	Set(HEADER_CG_PLAYER_SET_TITLE, sizeof(TPacketCGPlayerSetTitle), "PlayerSetTitle", false);
+#endif
 }
 
 CPacketInfoCG::~CPacketInfoCG()

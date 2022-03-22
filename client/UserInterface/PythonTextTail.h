@@ -13,7 +13,9 @@ class CPythonTextTail : public CSingleton<CPythonTextTail>
 
 			CGraphicMarkInstance*			pMarkInstance;
 			CGraphicTextInstance*			pGuildNameTextInstance;
-
+#ifdef ENABLE_TITLE_SYSTEM
+			CGraphicTextInstance*			pPlayerTitleTextInstance;
+#endif
 			CGraphicTextInstance*			pTitleTextInstance;
 			CGraphicTextInstance*			pLevelTextInstance;
 
@@ -79,6 +81,10 @@ class CPythonTextTail : public CSingleton<CPythonTextTail>
 
 		void EnablePKTitle(BOOL bFlag);
 		void AttachTitle(DWORD dwVID, const char * c_szName, const D3DXCOLOR& c_rColor);
+#ifdef ENABLE_TITLE_SYSTEM
+		void AttachPlayerTitle(DWORD dwVID, const char* c_szName, const D3DXCOLOR& c_rColor = D3DXCOLOR());
+		void DetachPlayerTitle(DWORD dwVID);
+#endif
 		void DetachTitle(DWORD dwVID);
 
 		void AttachLevel(DWORD dwVID, const char* c_szText, const D3DXCOLOR& c_rColor);

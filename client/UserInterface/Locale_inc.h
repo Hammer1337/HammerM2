@@ -61,6 +61,8 @@
 
 
 
+#define ENABLE_TITLE_SYSTEM
+
 
 /*
 	###		New Debugging Defines

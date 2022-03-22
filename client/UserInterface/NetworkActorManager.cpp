@@ -91,6 +91,9 @@ void SNetworkActorData::__copy__(const SNetworkActorData& src)
 	m_dwGuildID = src.m_dwGuildID;
 	m_dwLevel = src.m_dwLevel;
 	m_stName = src.m_stName;
+#ifdef ENABLE_TITLE_SYSTEM
+	m_dwTitleID = src.m_dwTitleID;
+#endif
 }
 // END_OF_NETWORK_ACTOR_DATA_COPY
 
@@ -126,7 +129,9 @@ SNetworkActorData::SNetworkActorData()
 	m_dwMountVnum=0;
 
 	m_stName="";
-
+#ifdef ENABLE_TITLE_SYSTEM
+	m_dwTitleID = 0;
+#endif
 	m_kAffectFlags.Clear();
 }
 
@@ -369,6 +374,9 @@ CInstanceBase* CNetworkActorManager::__AppendCharacterManagerActor(SNetworkActor
 #endif
 	kCreateData.m_isMain=__IsMainActorVID(dwVID);
 
+#ifdef ENABLE_TITLE_SYSTEM
+	kCreateData.m_dwTitleID = rkNetActorData.m_dwTitleID;
+#endif
 	CInstanceBase* pOldInstance = rkChrMgr.GetInstancePtr(dwVID);
 	if (pOldInstance)
 	{
@@ -494,7 +502,9 @@ void CNetworkActorManager::UpdateActor(const SNetworkUpdateActorData& c_rkNetUpd
 		pkInstFind->SetAlignment(c_rkNetUpdateActorData.m_sAlignment);
 		pkInstFind->SetPKMode(c_rkNetUpdateActorData.m_byPKMode);
 		pkInstFind->SetStateFlags(c_rkNetUpdateActorData.m_dwStateFlags);
-
+#ifdef ENABLE_TITLE_SYSTEM
+		pkInstFind->SetTitleID(c_rkNetUpdateActorData.m_dwTitleID);
+#endif
 		//if( c_rkNetUpdateActorData.m_dwMountVnum != 0 )
 		//{
 		//	pkInstFind->MountHorse(c_rkNetUpdateActorData.m_dwMountVnum);
@@ -521,6 +531,9 @@ void CNetworkActorManager::UpdateActor(const SNetworkUpdateActorData& c_rkNetUpd
 #endif
 	rkNetActorData.m_sAlignment=c_rkNetUpdateActorData.m_sAlignment;
 	rkNetActorData.m_byPKMode=c_rkNetUpdateActorData.m_byPKMode;
+#ifdef ENABLE_TITLE_SYSTEM
+	rkNetActorData.m_dwTitleID = c_rkNetUpdateActorData.m_dwTitleID;
+#endif
 }
 
 void CNetworkActorManager::MoveActor(const SNetworkMoveActorData& c_rkNetMoveActorData)

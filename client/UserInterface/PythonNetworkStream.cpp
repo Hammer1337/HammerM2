@@ -189,6 +189,9 @@ class CMainPacketHeaderMap : public CNetworkPacketHeaderMap
 			Set(HEADER_GC_ACCE, CNetworkPacketHeaderMap::TPacketType(sizeof(TPacketAcce), STATIC_SIZE_PACKET));
 #endif
 			Set(HEADER_GC_UNK_213,			CNetworkPacketHeaderMap::TPacketType(sizeof(TPacketGCUnk213), STATIC_SIZE_PACKET)); // @fixme007
+#ifdef ENABLE_TITLE_SYSTEM
+			Set(HEADER_GC_PLAYER_TITLES,			CNetworkPacketHeaderMap::TPacketType(sizeof(TPacketGCPlayerTitles), STATIC_SIZE_PACKET));
+#endif
 
 		}
 };

@@ -381,3 +381,15 @@ void SetGuildSymbolPath(const char * c_szPathName);
 const char * GetGuildSymbolFileName(DWORD dwGuildID);
 BYTE SlotTypeToInvenType(BYTE bSlotType);
 
+
+#ifdef ENABLE_TITLE_SYSTEM
+typedef struct STitleTable
+{
+	DWORD dwTitleID;
+	const char* szName;
+	TPlayerItemAttribute attr;
+	D3DXCOLOR color;
+}TTitleTable;
+
+TTitleTable* GetTitleByID(DWORD dwTitleID);
+#endif

@@ -40,7 +40,9 @@ class CInstanceBase
 			CAffectFlagContainer	m_kAffectFlags;
 
 			std::string m_stName;
-
+#ifdef ENABLE_TITLE_SYSTEM
+			DWORD	m_dwTitleID;
+#endif
 			bool	m_isMain;
 		};
 
@@ -498,7 +500,11 @@ class CInstanceBase
 		void					RenderToShadowMap();
 		void					RenderCollision();
 		void					RegisterBoundingSphere();
-
+#ifdef ENABLE_TITLE_SYSTEM
+		void					SetTitleID(DWORD dwTitleID);
+		std::string				GetTitleNameString();
+		D3DXCOLOR*				GetPlayerTitleColor();
+#endif
 		// Temporary
 		void					GetBoundBox(D3DXVECTOR3 * vtMin, D3DXVECTOR3 * vtMax);
 
@@ -988,7 +994,9 @@ class CInstanceBase
 		BYTE					m_byPKMode;
 		bool					m_isKiller;
 		bool					m_isPartyMember;
-
+#ifdef ENABLE_TITLE_SYSTEM
+		DWORD					m_dwTitleID;
+#endif
 		// Movement
 		int						m_iRotatingDirection;
 

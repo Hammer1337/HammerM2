@@ -442,6 +442,9 @@ void CHARACTER::Initialize()
 	m_bAcceCombination	= false;
 	m_bAcceAbsorption	= false;
 #endif
+#ifdef ENABLE_TITLE_SYSTEM
+	m_vecTitles.clear();
+#endif
 }
 
 void CHARACTER::Create(const char * c_pszName, DWORD vid, bool isPC)
@@ -997,6 +1000,9 @@ void CHARACTER::EncodeInsertPacket(LPENTITY entity)
 			}
 
 			addPacket.sAlignment = m_iAlignment / 10;
+#ifdef ENABLE_TITLE_SYSTEM
+			addPacket.dwTitleID = m_pointsInstant.dwTitleID;
+#endif
 		}
 
 		d->Packet(&addPacket, sizeof(TPacketGCCharacterAdditionalInfo));
@@ -1095,7 +1101,9 @@ void CHARACTER::UpdatePacket()
 	pack.dwGuildID	= 0;
 	pack.sAlignment	= m_iAlignment / 10;
 	pack.bPKMode	= m_bPKMode;
-
+#ifdef ENABLE_TITLE_SYSTEM
+	pack.dwTitleID	= m_pointsInstant.dwTitleID;
+#endif
 	if (GetGuild())
 		pack.dwGuildID = GetGuild()->GetID();
 
@@ -1328,6 +1336,9 @@ void CHARACTER::CreatePlayerProto(TPlayerTable & tab)
 	// END_OF_REMOVE_REAL_SKILL_LEVLES
 
 	tab.horse = GetHorseData();
+#ifdef ENABLE_TITLE_SYSTEM
+	tab.dwTitleID = m_pointsInstant.dwTitleID;
+#endif
 }
 
 
@@ -1929,6 +1940,9 @@ void CHARACTER::SetPlayerProto(const TPlayerTable * t)
 	}
 
 	m_petSystem = M2_NEW CPetSystem(this);
+#endif
+#ifdef ENABLE_TITLE_SYSTEM
+	m_pointsInstant.dwTitleID = t->dwTitleID;
 #endif
 }
 
@@ -7914,5 +7928,136 @@ bool CHARACTER::CleanAcceAttr(LPITEM pkItem, LPITEM pkTarget)
 	LogManager::instance().ItemLog(this, pkTarget, "USE_DETACHMENT (CLEAN ATTR)", pkTarget->GetName());
 	return true;
 }
+#endif
+
+#ifdef ENABLE_TITLE_SYSTEM
+void CHARACTER::LoadTitle(DWORD dwCount, TPlayerTitle* pElements)
+{
+	if (!m_vecTitles.empty())
+	{
+		sys_err("titles are already loaded.");
+		return;
+	}
+
+	// for optimization
+	// m_vecTitles.resize(dwCount);
+	// for (DWORD i = 0; i < dwCount; ++i, ++pElements)
+	// {
+	// 	DWORD dwTitleID = pElements->dwTitleID;
+	// 	m_vecTitles.emplace_back(dwTitleID);
+	// }
+	for (DWORD i = 0; i < dwCount; ++i, ++pElements)
+	{
+		DWORD dwTitleID = pElements->dwTitleID;
+		m_vecTitles.push_back(dwTitleID);
+	}
+
+	// TODO: we need to send the list to the player in CInputLogin::EnterGame
+}
+
+bool CHARACTER::FindTitle(DWORD dwTitleID)
+{
+	// advanced
+	//return std::find(m_vecTitles.begin(), m_vecTitles.end(), dwTitleID) != m_vecTitles.end();
+	//
+	for(size_t i = 0; i < m_vecTitles.size(); ++i)
+	{
+		if (m_vecTitles.at(i) == dwTitleID)
+			return true;
+	}
+	return false;
+}
+
+bool CHARACTER::AddTitle(DWORD dwTitleID)
+{
+	if (FindTitle(dwTitleID))
+		return false;
+
+	TTitleTable* pTitle = GetTitleByID(dwTitleID);
+	if (!pTitle)
+	{
+		sys_err("TITLE_SYSTEM: the selected title doesn't exist.");
+		return false;
+	}
+
+	// add title 
+	m_vecTitles.push_back(dwTitleID);
+
+	TPlayerTitle p;
+	p.dwPlayerID = GetPlayerID();
+	p.dwTitleID = dwTitleID;
+	db_clientdesc->DBPacket(HEADER_GD_ADD_TITLE, 0, &p, sizeof(p));
+	return true;
+}
+bool CHARACTER::RemoveTitle(DWORD dwTitleID)
+{
+	if (!FindTitle(dwTitleID))
+		return false;
+
+
+	TTitleTable* pTitle = GetTitleByID(dwTitleID);
+	if (!pTitle)
+	{
+		sys_err("TITLE_SYSTEM: the selected title doesn't exist.");
+		return false;
+	}
+
+	// add title
+	const auto& it = std::find(m_vecTitles.begin(), m_vecTitles.end(), dwTitleID);
+	m_vecTitles.erase(it);
+
+	TPlayerTitle p;
+	p.dwPlayerID = GetPlayerID();
+	p.dwTitleID = dwTitleID;
+	db_clientdesc->DBPacket(HEADER_GD_REMOVE_TITLE, 0, &p, sizeof(p));
+	return true;
+}
+void CHARACTER::SetTitle(DWORD dwTitleID)
+{
+	// find title
+	if (!FindTitle(dwTitleID))
+		return;
+	// get title table
+	TTitleTable* pTitle = GetTitleByID(dwTitleID);
+	if (!pTitle)
+		return;
+
+	// remove old bonuses
+	CAffect* pAffect = FindAffect(AFFECT_TITLE_BONUS);
+	if (pAffect)
+		RemoveAffect(pAffect);
+
+	// set title
+	m_pointsInstant.dwTitleID = dwTitleID;
+
+	// add the new bonuses.
+	AddAffect(AFFECT_TITLE_BONUS, aApplyInfo[pTitle->attr.bType].bPointType, pTitle->attr.sValue, 0, INFINITE_AFFECT_DURATION, 0, false, 0);
+
+
+	// if the bonuses is an array
+	// for(int i = 0; i < PLAYER_TITLE_ATTR_MAX_NUM; ++i)
+	// {
+	// 	AddAffect(AFFECT_TITLE_BONUS, aApplyInfo[pTitle->attr[i].bType].bPointType, pTitle->attr[i].sValue, 0, INFINITE_AFFECT_DURATION, 0, false, 0);
+	// }
+
+
+	// TODO: Send the new title to the client.
+	// updatepacket()
+	UpdatePacket();
+
+}
+void CHARACTER::SendTitles()
+{
+	TPacketGCPlayerTitles pack;
+	pack.bHeader = HEADER_GC_PLAYER_TITLES;
+	for(const auto & it : m_vecTitles)
+	{
+
+		pack.dwTitleID = it;
+		sys_err("SENDTITLES: PLAYER TITLE %d", pack.dwTitleID);
+		GetDesc()->Packet(&pack, sizeof(TPacketGCPlayerTitles)); // ﬂ„«  —”· · db 
+	}
+}
+
 #endif
 

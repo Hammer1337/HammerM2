@@ -457,6 +457,10 @@ typedef struct character_point_instant
 
 	int				iDragonSoulActiveDeck;
 	LPENTITY		m_pDragonSoulRefineWindowOpener;
+
+#ifdef ENABLE_TITLE_SYSTEM
+	DWORD			dwTitleID;
+#endif
 } CHARACTER_POINT_INSTANT;
 
 #define TRIGGERPARAM		LPCHARACTER ch, LPCHARACTER causer
@@ -1812,6 +1816,21 @@ class CHARACTER : public CEntity, public CFSM, public CHorseRider
 
 	public:
 		int		GetSkillPowerByLevel(int level, bool bMob = false) const;
+
+#ifdef ENABLE_TITLE_SYSTEM
+		void LoadTitle(DWORD dwCount, TPlayerTitle* pElements);
+		bool FindTitle(DWORD dwTitleID);
+		bool AddTitle(DWORD dwTitleID);
+		bool RemoveTitle(DWORD dwTitleID);
+		void SetTitle(DWORD dwTitleID);
+		void SendTitles();
+		DWORD GetTitle() { return m_pointsInstant.dwTitleID; }
+		std::vector<DWORD>& GetTitlesVec() { return m_vecTitles; }
+	private:
+		std::vector<DWORD>	m_vecTitles;
+		
+	public:
+#endif
 
 		//PREVENT_REFINE_HACK
 		int		GetRefineTime() const { return m_iRefineTime; }

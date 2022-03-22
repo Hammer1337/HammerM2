@@ -133,7 +133,9 @@ bool CPythonNetworkStream::RecvCharacterAppendPacket()
 	kNetActorData.m_dwMountVnum=0;/*chrAddPacket.dwMountVnum*/;
 
 	kNetActorData.m_dwLevel = 0;
-
+#ifdef ENABLE_TITLE_SYSTEM
+	kNetActorData.m_dwTitleID = 0;
+#endif
 	if(kNetActorData.m_bType != CActorInstance::TYPE_PC &&
 		kNetActorData.m_bType != CActorInstance::TYPE_NPC)
 	{
@@ -181,7 +183,9 @@ bool CPythonNetworkStream::RecvCharacterAdditionalInfo()
 		kNetActorData.m_dwAcce		= chrInfoPacket.awPart[CHR_EQUIPPART_ACCE];
 #endif
 		kNetActorData.m_dwMountVnum	= chrInfoPacket.dwMountVnum;
-
+#ifdef ENABLE_TITLE_SYSTEM
+		kNetActorData.m_dwTitleID = chrInfoPacket.dwTitleID;
+#endif
 		__RecvCharacterAppendPacket(&kNetActorData);
 	}
 	else
@@ -228,6 +232,9 @@ bool CPythonNetworkStream::RecvCharacterAppendPacketNew()
 	kNetActorData.m_sAlignment=chrAddPacket.sAlignment;
 	kNetActorData.m_byPKMode=chrAddPacket.bPKMode;
 	kNetActorData.m_stName=chrAddPacket.name;
+#ifdef ENABLE_TITLE_SYSTEM
+	kNetActorData.m_dwTitleID = chrAddPacket.dwTitleID;
+#endif
 	__RecvCharacterAppendPacket(&kNetActorData);
 
 	return true;
@@ -258,6 +265,9 @@ bool CPythonNetworkStream::RecvCharacterUpdatePacket()
 	kNetUpdateActorData.m_byPKMode=chrUpdatePacket.bPKMode;
 	kNetUpdateActorData.m_dwStateFlags=chrUpdatePacket.bStateFlag;
 	kNetUpdateActorData.m_dwMountVnum=chrUpdatePacket.dwMountVnum;
+#ifdef ENABLE_TITLE_SYSTEM
+	kNetUpdateActorData.m_dwTitleID = chrUpdatePacket.dwTitleID;
+#endif
 	__RecvCharacterUpdatePacket(&kNetUpdateActorData);
 
 	return true;
@@ -288,7 +298,9 @@ bool CPythonNetworkStream::RecvCharacterUpdatePacketNew()
 	kNetUpdateActorData.m_byPKMode		= chrUpdatePacket.bPKMode;
 	kNetUpdateActorData.m_dwStateFlags	= chrUpdatePacket.bStateFlag;
 	kNetUpdateActorData.m_dwMountVnum	= chrUpdatePacket.dwMountVnum;
-
+#ifdef ENABLE_TITLE_SYSTEM
+	kNetUpdateActorData.m_dwTitleID = chrUpdatePacket.dwTitleID;
+#endif
 	__RecvCharacterUpdatePacket(&kNetUpdateActorData);
 
 	return true;

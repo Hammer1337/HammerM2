@@ -79,6 +79,8 @@ enum eCommonDefines {
 
 // ### CommonDefines Systems ###
 //////////////////////////////////////////////////////////////////////////
+#define ENABLE_TITLE_SYSTEM
+#define ENABLE_TITLE_SYSTEM_CACHE
 
 #endif
 

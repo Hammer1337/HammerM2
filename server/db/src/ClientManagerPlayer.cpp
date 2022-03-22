@@ -119,6 +119,9 @@ size_t CreatePlayerSaveQuery(char * pszQuery, size_t querySize, TPlayerTable * p
 			"horse_hp_droptime = %u, "
 			"horse_stamina = %d, "
 			"horse_skill_point = %d, "
+#ifdef ENABLE_TITLE_SYSTEM
+			"title_id = %u,"
+#endif
 			,
 		GetTablePostfix(),
 		pkTab->job,
@@ -162,8 +165,11 @@ size_t CreatePlayerSaveQuery(char * pszQuery, size_t querySize, TPlayerTable * p
 		pkTab->horse.sHealth,
 		pkTab->horse.dwHorseHealthDropTime,
 		pkTab->horse.sStamina,
-		pkTab->horse_skill_point);
-
+		pkTab->horse_skill_point
+#ifdef ENABLE_TITLE_SYSTEM
+		,pkTab->dwTitleID
+#endif
+	);
 
 	static char text[8192 + 1];
 
@@ -377,7 +383,11 @@ void CClientManager::QUERY_PLAYER_LOAD(CPeer * peer, DWORD dwHandle, TPlayerLoad
 #endif
 
 				"skill_level,quickslot,skill_group,alignment,mobile,horse_level,horse_riding,horse_hp,horse_hp_droptime,horse_stamina,"
-				"UNIX_TIMESTAMP(NOW())-UNIX_TIMESTAMP(last_play),horse_skill_point FROM player%s WHERE id=%d",
+				"UNIX_TIMESTAMP(NOW())-UNIX_TIMESTAMP(last_play),horse_skill_point"
+#ifdef ENABLE_TITLE_SYSTEM
+				", title_id"
+#endif
+				" FROM player%s WHERE id=%d",
 				GetTablePostfix(), packet->player_id);
 
 		ClientHandleInfo * pkInfo = new ClientHandleInfo(dwHandle, packet->player_id);
@@ -411,6 +421,55 @@ void CClientManager::QUERY_PLAYER_LOAD(CPeer * peer, DWORD dwHandle, TPlayerLoad
 	}
 
 
+
+#ifdef ENABLE_TITLE_SYSTEM
+	//title system query.
+	// Title
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+	TPlayerTitleCache* pTitleCache = GetPlayerTitleCacheMap(packet->player_id);
+	if (pTitleCache && c)
+	{
+		// send packet to game.
+		sys_log(0, "LoadPlayerTitleFromCache pid %u", packet->player_id);
+
+		std::vector<TPlayerTitle> vecTitles; 
+
+		for(TPlayerTitleCache::const_iterator it = pTitleCache->begin(); it != pTitleCache->end(); ++it)
+		{
+			vecTitles.push_back(*it->second->Get());
+		}
+		DWORD dwPID = packet->player_id;
+		DWORD dwCount = vecTitles.size();
+		// äÝÓ ÇáÔÑÍ Ýí ÇáÃÚáì íäØÈÞ Úáì åÐå
+		peer->EncodeHeader(HEADER_DG_TITLE_LOAD, dwHandle,
+			// size block åÐÇ ÍÌã ÇáÈÇßÊ ÇáÊí ÓÊÑÓá Åáì game
+			sizeof(DWORD) // PlayerID ÑÞã ÚÖæíÉ ÇááÇÚÈ
+			+ sizeof(DWORD) // Titles Count s_elements.size()  ÚÏÏ ÇáÃáÞÇÈ ãÍÏÏ Ýí ÇáÃÚáì
+			+ sizeof(TPlayerTitle) * dwCount); // ÍÌã ÇáÃáÞÇÈ * ÚÏÏåÇ
+			// end of size block
+		peer->Encode(&dwPID, sizeof(DWORD)); // íÞæã ÈÅÑÓÇá dwPID
+		peer->Encode(&dwCount, sizeof(DWORD)); // dwCount
+		peer->Encode(&vecTitles[0], sizeof(TPlayerTitle)* dwCount); // åäÇ íÍæá Çá vector Åáì array æíÖÚ pointer on the first element.
+
+	}
+	else
+	{
+		char szQuery[QUERY_MAX_LEN];
+		snprintf(szQuery, sizeof(szQuery),
+			"SELECT id FROM player_title%s WHERE pid=%d",
+			GetTablePostfix(), packet->player_id);
+		CDBManager::instance().ReturnQuery(szQuery, QID_TITLE, peer->GetHandle(), new ClientHandleInfo(dwHandle, packet->player_id));
+	}
+#else
+	char szQuery[QUERY_MAX_LEN];
+	snprintf(szQuery, sizeof(szQuery),
+		"SELECT id FROM player_title%s WHERE pid=%d",
+		GetTablePostfix(), packet->player_id);
+	CDBManager::instance().ReturnQuery(szQuery, QID_TITLE, peer->GetHandle(), new ClientHandleInfo(dwHandle, packet->player_id));
+#endif
+
+
+#endif
 }
 void CClientManager::ItemAward(CPeer * peer,char* login)
 {
@@ -534,7 +593,9 @@ bool CreatePlayerTableFromRes(MYSQL_RES * res, TPlayerTable * pkTab)
 	str_to_number(pkTab->horse.sStamina, row[col++]);
 	str_to_number(pkTab->logoff_interval, row[col++]);
 	str_to_number(pkTab->horse_skill_point, row[col++]);
-
+#ifdef ENABLE_TITLE_SYSTEM
+	str_to_number(pkTab->dwTitleID, row[col++]);
+#endif
 	// reset sub_skill_point
 	{
 		pkTab->skills[123].bLevel = 0; // SKILL_CREATE
@@ -609,6 +670,13 @@ void CClientManager::RESULT_COMPOSITE_PLAYER(CPeer * peer, SQLMsg * pMsg, DWORD 
 			// @fixme402 RESULT_AFFECT_LOAD+info->player_id
 			RESULT_AFFECT_LOAD(peer, pSQLResult, info->dwHandle, info->player_id);
 			break;
+#ifdef ENABLE_TITLE_SYSTEM
+		// title system case
+		case QID_TITLE:
+			sys_log(0, "QID_TITLE %u", info->dwHandle);
+			RESULT_TITLE_LOAD(peer, pSQLResult, info->dwHandle, info->player_id);
+			break;
+#endif
 			/*
 			   case QID_PLAYER_ITEM_QUEST_AFFECT:
 			   sys_log(0, "QID_PLAYER_ITEM_QUEST_AFFECT %u", info->dwHandle);
@@ -802,6 +870,76 @@ void CClientManager::RESULT_QUEST_LOAD(CPeer * peer, MYSQL_RES * pRes, DWORD dwH
 	peer->Encode(&dwCount, sizeof(DWORD));
 	peer->Encode(&s_table[0], sizeof(TQuestTable) * dwCount);
 }
+
+#ifdef ENABLE_TITLE_SYSTEM
+// title system function
+void CClientManager::RESULT_TITLE_LOAD(CPeer* peer, MYSQL_RES* pRes, DWORD dwHandle, DWORD dwRealPID)
+{
+	int iNumRows;
+
+	if ((iNumRows = mysql_num_rows(pRes)) == 0) // µ¥ÀÌÅÍ ¾øÀ½
+	{
+		// @fixme402 begin
+		static DWORD dwPID = dwRealPID;
+		static DWORD dwCount = 0; //1;
+		static TPlayerTitle paeTable = { 0 };
+
+		dwPID = dwRealPID;
+		sys_log(0, "TITLE_LOAD: count %u PID %u RealPID %u", dwCount, dwPID, dwRealPID);
+
+		peer->EncodeHeader(HEADER_DG_TITLE_LOAD, dwHandle,
+			// size block åÐÇ ÍÌã ÇáÈÇßÊ ÇáÊí ÓÊÑÓá Åáì game
+			sizeof(DWORD) // PlayerID ÑÞã ÚÖæíÉ ÇááÇÚÈ
+			+ sizeof(DWORD) // Titles Count in this case 0 ÚÏÏ ÇáÃáÞÇÈ ãÍÏÏ Ýí ÇáÃÚáì 0
+			+ sizeof(TPlayerTitle) * dwCount); // ÍÌã ÇáÃáÞÇÈ * ÚÏÏåÇ
+			// end of size block
+		peer->Encode(&dwPID, sizeof(DWORD)); // íÞæã ÈÅÑÓÇá dwPID
+		peer->Encode(&dwCount, sizeof(DWORD)); // dwCount
+		peer->Encode(&paeTable, sizeof(TPlayerTitle) * dwCount); // etc.
+		// @fixme402 end
+		return;
+	}
+
+	static std::vector<TPlayerTitle> s_elements;
+	s_elements.resize(iNumRows);
+
+	DWORD dwPID = dwRealPID;
+
+	MYSQL_ROW row;
+
+	for (int i = 0; i < iNumRows; ++i)
+	{
+		TPlayerTitle& r = s_elements[i];
+		r.dwPlayerID = dwPID;
+		row = mysql_fetch_row(pRes);
+		/*
+		 *ÇáÚãæÏ id 
+		 SELECT `id` FROM player_title%s WHERE pid=%d
+		 */
+		str_to_number(r.dwTitleID, row[0]); // áÇ íæÌÏ Óæì ÚãæÏ æÇÍÏ íÓÊÎÑÌ ãä ÞÇÚÏÉ ÇáÈíÇäÇÊ
+	}
+
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+	for (size_t i = 0; i < s_elements.size(); ++i)
+		PutPlayerTitleCache(dwPID, &s_elements[i]);
+#endif
+	sys_log(0, "TITLE_LOAD: count %d PID %u", s_elements.size(), dwPID);
+
+	DWORD dwCount = s_elements.size();
+
+	// äÝÓ ÇáÔÑÍ Ýí ÇáÃÚáì íäØÈÞ Úáì åÐå
+	peer->EncodeHeader(HEADER_DG_TITLE_LOAD, dwHandle,
+		// size block åÐÇ ÍÌã ÇáÈÇßÊ ÇáÊí ÓÊÑÓá Åáì game
+		sizeof(DWORD) // PlayerID ÑÞã ÚÖæíÉ ÇááÇÚÈ
+		+ sizeof(DWORD) // Titles Count s_elements.size()  ÚÏÏ ÇáÃáÞÇÈ ãÍÏÏ Ýí ÇáÃÚáì
+		+ sizeof(TPlayerTitle) * dwCount); // ÍÌã ÇáÃáÞÇÈ * ÚÏÏåÇ
+		// end of size block
+	peer->Encode(&dwPID, sizeof(DWORD)); // íÞæã ÈÅÑÓÇá dwPID
+	peer->Encode(&dwCount, sizeof(DWORD)); // dwCount
+	peer->Encode(&s_elements[0], sizeof(TPlayerTitle) * dwCount); // åäÇ íÍæá Çá vector Åáì array æíÖÚ pointer on the first element.
+
+}
+#endif
 
 /*
  * PLAYER SAVE
@@ -1393,4 +1531,79 @@ void CClientManager::FlushPlayerCacheSet(DWORD pid)
 		delete c;
 	}
 }
+
+#ifdef ENABLE_TITLE_SYSTEM
+void CClientManager::QUERY_ADD_TITLE(CPeer* peer, TPlayerTitle* p)
+{
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+	CPlayerTitleCache* c = GetPlayerTitleCache(p->dwPlayerID, p->dwTitleID);
+	if (!c)
+	{
+		PutPlayerTitleCache(p->dwPlayerID, p);
+	}
+	else
+	{
+		char queryStr[QUERY_MAX_LEN];
+
+		snprintf(queryStr, sizeof(queryStr),
+			"REPLACE INTO player_title%s (pid, id) "
+			"VALUES(%u, %u)",
+			GetTablePostfix(),
+			p->dwPlayerID,
+			p->dwTitleID);
+		// async query.
+		CDBManager::instance().AsyncQuery(queryStr);
+	}
+#else
+	char queryStr[QUERY_MAX_LEN];
+
+	snprintf(queryStr, sizeof(queryStr),
+		"REPLACE INTO player_title%s (pid, id) "
+		"VALUES(%u, %u)",
+		GetTablePostfix(),
+		p->dwPlayerID,
+		p->dwTitleID);
+	// async query.
+	CDBManager::instance().AsyncQuery(queryStr);
+#endif
+}
+
+void CClientManager::QUERY_REMOVE_TITLE(CPeer * peer, TPlayerTitle * p)
+{
+#ifdef ENABLE_TITLE_SYSTEM_CACHE
+	CPlayerTitleCache* c = GetPlayerTitleCache(p->dwPlayerID, p->dwTitleID);
+
+	if (c)
+	{
+		c->SetDeleted();
+		c->OnFlush();
+		sys_log(0, "QUERY_REMOVE_TITLE cache pid %u title %u", p->dwPlayerID, p->dwTitleID);
+
+	}
+	else
+	{
+		char queryStr[QUERY_MAX_LEN];
+
+		snprintf(queryStr, sizeof(queryStr),
+			"DELETE FROM player_title%s WHERE pid=%u AND id=%u",
+			GetTablePostfix(),
+			p->dwPlayerID,
+			p->dwTitleID);
+		// async query.
+		CDBManager::instance().AsyncQuery(queryStr);
+	}
+#else
+	char queryStr[QUERY_MAX_LEN];
+
+	snprintf(queryStr, sizeof(queryStr),
+		"DELETE FROM player_title%s WHERE pid=%u AND id=%u",
+		GetTablePostfix(),
+		p->dwPlayerID,
+		p->dwTitleID);
+	// async query.
+	CDBManager::instance().AsyncQuery(queryStr);
+#endif
+
+}
+#endif
 

@@ -156,7 +156,9 @@ enum
 
 	HEADER_CG_DRAGON_SOUL_REFINE			= 205,
 	HEADER_CG_STATE_CHECKER					= 206,
-
+#ifdef ENABLE_TITLE_SYSTEM
+	HEADER_CG_PLAYER_SET_TITLE					= 207,
+#endif
 #ifdef __AUCTION__
 	HEADER_CG_AUCTION_CMD							= 205,
 #endif
@@ -360,6 +362,9 @@ enum
 	HEADER_GC_SPECIFIC_EFFECT					= 208,
 	HEADER_GC_DRAGON_SOUL_REFINE						= 209,
 	HEADER_GC_RESPOND_CHANNELSTATUS				= 210,
+#ifdef ENABLE_TITLE_SYSTEM
+	HEADER_GC_PLAYER_TITLES						= 212,
+#endif
 
 	// @fixme007
 	HEADER_GC_UNK_213							= 213,
@@ -1325,6 +1330,9 @@ typedef struct packet_char_additional_info
 	short   sAlignment;
 	BYTE    bPKMode;
 	DWORD   dwMountVnum;
+#ifdef ENABLE_TITLE_SYSTEM
+	DWORD	dwTitleID;
+#endif
 } TPacketGCCharacterAdditionalInfo;
 
 typedef struct packet_add_char
@@ -1382,6 +1390,9 @@ typedef struct packet_add_char2
     short       sAlignment;
 	BYTE		bPKMode;
 	DWORD		dwMountVnum;
+#ifdef ENABLE_TITLE_SYSTEM
+	DWORD		dwTitleID;
+#endif
 } TPacketGCCharacterAdd2;
 
 typedef struct packet_update_char
@@ -1400,6 +1411,9 @@ typedef struct packet_update_char
     short       sAlignment;
 	BYTE		bPKMode;
 	DWORD		dwMountVnum;
+#ifdef ENABLE_TITLE_SYSTEM
+	DWORD		dwTitleID;
+#endif
 } TPacketGCCharacterUpdate;
 
 typedef struct packet_update_char2
@@ -1418,6 +1432,9 @@ typedef struct packet_update_char2
     short       sAlignment;
 	BYTE		bPKMode;
 	DWORD		dwMountVnum;
+#ifdef ENABLE_TITLE_SYSTEM
+	DWORD		dwTitleID;
+#endif
 } TPacketGCCharacterUpdate2;
 
 typedef struct packet_del_char
@@ -2888,6 +2905,18 @@ typedef struct packet_unk_213
 	BYTE bHeader;
 	BYTE bUnk2;
 } TPacketGCUnk213;
+#ifdef ENABLE_TITLE_SYSTEM
+typedef struct SPacketGCPlayerTitles
+{
+	BYTE bHeader; // the header always HEADER_GC_PLAYER_TITLES
+	DWORD dwTitleID;
+}TPacketGCPlayerTitles;
 
+typedef struct SPacketCGPlayerSetTitle
+{
+	BYTE bHeader;
+	DWORD dwTitleID;
+}TPacketCGPlayerSetTitle;
+#endif
 #pragma pack(pop)
 

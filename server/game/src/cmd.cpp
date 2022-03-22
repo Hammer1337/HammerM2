@@ -293,7 +293,11 @@ ACMD(do_rewarp);
 #ifdef ENABLE_WOLFMAN_CHARACTER
 ACMD(do_bleeding);
 #endif
-
+#ifdef ENABLE_TITLE_SYSTEM
+ACMD(do_set_title);
+ACMD(do_remove_title);
+ACMD(do_titles_list);
+#endif
 struct command_info cmd_info[] =
 {
 	{ "!RESERVED!",	NULL,			0,			POS_DEAD,	GM_IMPLEMENTOR	},
@@ -618,6 +622,11 @@ struct command_info cmd_info[] =
 #endif
 #ifdef ENABLE_WOLFMAN_CHARACTER
 	{ "bleeding",			do_bleeding,				0,			POS_DEAD,	GM_IMPLEMENTOR	},
+#endif
+#ifdef ENABLE_TITLE_SYSTEM
+	{ "set_title",			do_set_title,				0	,			POS_DEAD,			GM_PLAYER },
+	{ "remove_title",		do_remove_title,			0	,			POS_DEAD,			GM_PLAYER },
+	{ "titles_list",			do_titles_list,			0	,			POS_DEAD,			GM_PLAYER },
 #endif
 	{ "\n",		NULL,			0,			POS_DEAD,	GM_IMPLEMENTOR	}
 };
